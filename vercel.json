@@ -1,0 +1,23 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "api/*.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/api/alerta.js"
+    },
+    {
+      "src": "/api/capture",
+      "dest": "/api/capture.js"
+    },
+    {
+      "src": "/api/c2",
+      "dest": "/api/c2.js"
+    }
+  ]
+}
